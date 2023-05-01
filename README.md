@@ -1,0 +1,2 @@
+# CLSC 300 Final Project
+This is the Github repository for the final group project of CLSC 300 that is offered at Wellesley College in Spring 2023. We built sentiment analysis dashboard for internet speak.
