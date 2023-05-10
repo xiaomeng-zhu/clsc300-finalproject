@@ -94,19 +94,18 @@ def compute_metrics(p):
 
     return {"accuracy": accuracy,"f1_score":f1}
 
-def main():
-    axis = "positivity"
+def main(axis):
     train_dataset, val_dataset = prepare_data(axis)
     training_args = TrainingArguments(
         output_dir='./res',          # output directory
         evaluation_strategy="steps",
-        num_train_epochs=5,              # total number of training epochs
+        num_train_epochs=10,              # total number of training epochs
         per_device_train_batch_size=32,  # batch size per device during training
         per_device_eval_batch_size=64,   # batch size for evaluation
         warmup_steps=500,                # number of warmup steps for learning rate scheduler
         weight_decay=0.01,               # strength of weight decay
         logging_dir='./logs4',            # directory for storing logs
-        #logging_steps=10,
+        # logging_steps=10,
         load_best_model_at_end=True,
     )
 
@@ -125,9 +124,13 @@ def main():
         compute_metrics=compute_metrics,
     )
     trainer.train()
-    trainer.evaluate()
+    metrics = trainer.evaluate()
+    print(metrics)
 
     # calculate accuracy on the validation set
 
 if __name__ == "__main__":
-    main()
+    for axis in ALL_AXIS:
+        print("===================================")
+        print("Training Model on the dimension", axis)
+        main(axis)
