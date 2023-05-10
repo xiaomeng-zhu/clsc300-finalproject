@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import warnings
 from sklearn.model_selection import train_test_split
 import torch
+import torch.nn
 from torch.utils.data import Dataset
 from transformers import DistilBertTokenizerFast,DistilBertForSequenceClassification
 from transformers import Trainer,TrainingArguments
@@ -37,11 +38,35 @@ class SentimentTestDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.encodings)
 
+class CustomTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs.get("labels")
+ 
+        # forward pass
+        outputs = model(**inputs)
+        print(outputs)
+        exit()
+        logits = outputs.get("logits")
+        # compute custom loss (suppose one has 3 labels with different weights)
+        # loss_fct = nn.CrossEntropyLoss()
+        loss_fct = nn.NLLLoss()
+        loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
+        return (loss, outputs) if return_outputs else loss
+
 def prepare_data(axis):
     all = pd.read_csv("labeled_data.csv")
     all = all.dropna()
     X = all["sequence"].values.tolist()
     y = all[axis].values.tolist()
+    
+    # clean up data labels
+    updated_ys = []
+    for label in y:
+        if label == -1:
+            updated_ys.append(2)
+        else:
+            updated_ys.append(int(label))
+    y = updated_ys
 
     if axis == "positivity":
         num_labels = 3
@@ -89,7 +114,7 @@ def main():
         num_labels = 3
     else:
         num_labels = 2
-    print(num_labels)
+
     model = DistilBertForSequenceClassification.from_pretrained(MODEL_NAME,num_labels=num_labels)
 
     trainer = Trainer(
@@ -101,6 +126,8 @@ def main():
     )
     trainer.train()
     trainer.evaluate()
+
+    # calculate accuracy on the validation set
 
 if __name__ == "__main__":
     main()
