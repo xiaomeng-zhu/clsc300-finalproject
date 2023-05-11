@@ -9,13 +9,27 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 
 function App() {
   const [text, updateText] = React.useState("");
-  const dummyQuery = () => Math.round(100*Math.random())
+  const [loading, setLoading] = React.useState(false);
+  const dummyQuery = (text, axis, setFn) => setFn(Math.round(100 * Math.random()))
+
+  async function fetchPred(text, axis, setFn) {
+    //fetch(`http://127.0.0.1:5000/${axis}/${text}`)
+    fetch(`http://127.0.0.1:5000/${axis}/${text}`)
+      .then(response => response.json())
+      .then(resp => {
+        console.log(resp)
+        setFn(100*resp[0])
+        setLoading(false)
+        return resp
+      })
+      .catch(console.error);
+  }
 
   const sentiments = [
-    { "labels": ["negative", "positive"], "color": "success", "val": React.useState(50), "queryFn": dummyQuery, "barRef": null },
-    { "labels": ["sarcastic", "sincere"], "color": "info", "val": React.useState(50), "queryFn": dummyQuery, "barRef": null  },
-    { "labels": ["ambiguous", "concrete"], "color": "warning", "val": React.useState(50), "queryFn": dummyQuery, "barRef": null  },
-    {"labels": ["calm", "intense"], "color": "danger", "val": React.useState(50), "queryFn": dummyQuery, "barRef": null }
+    { "axis": "positivity", "labels": ["negative", "positive"], "color": "success", "val": React.useState(50) },
+    { "axis": "sincerity", "labels": ["sarcastic", "sincere"], "color": "info", "val": React.useState(50) },
+    { "axis": "concreteness", "labels": ["ambiguous", "concrete"], "color": "warning", "val": React.useState(50) },
+    { "axis": "intensity", "labels": ["calm", "intense"], "color": "danger", "val": React.useState(50) }
   ]
 
   function TextInput() {
@@ -24,7 +38,7 @@ function App() {
       const formData = new FormData(e.target),
             formDataObj = Object.fromEntries(formData.entries())
       console.log(formDataObj)
-      handleSubmit(formDataObj.text)
+      handleSubmit(formDataObj.text, fetchPred)
     }
 
     return (
@@ -33,8 +47,8 @@ function App() {
         <Form.Control placeholder="Enter text here" defaultValue={text} style={{ minHeight: '20vh'}} as="textarea" rows="3" name="text"/>
         </Form.Group>
       <Stack direction="horizontal" gap={3}>
-        <Button variant="primary" type="submit" size="lg">
-          Submit
+        <Button disabled={loading} type="submit" size="lg">
+          {loading? "Analyzing..." : "Submit"}
           </Button>
         <Button variant="danger" onClick={()=>reset()} size="lg">
           Clear
@@ -61,11 +75,18 @@ function App() {
     )
   }
 
-  function handleSubmit(input) {
-    //console.log(input)
-    updateText(input)
-    sentiments.forEach((s, i, arr) => sentiments[i].val[1](s.queryFn(input)))
-    sentiments.forEach((s, i, arr) => console.log(s.val[0]))
+  function handleSubmit(input, queryFn = dummyQuery) {
+    if (loading === false) {
+      setLoading(true)
+      //console.log(input)
+      updateText(input)
+      //queryFn(input, s.axis, s.val[1])
+      /*querySentiment(input, queryFn).then(() => {
+        setLoading(false);
+      });*/
+      sentiments.forEach((s, i, arr) => queryFn(input, s.axis, s.val[1]))
+      //sentiments.forEach((s, i, arr) => console.log(s.val[0]))
+    }
   }
 
   React.useEffect(() => {

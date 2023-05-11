@@ -46,7 +46,7 @@ def arg_to_label(axis, arg):
         return intensity_mapping[arg]
     else:
         print("No such axis exist")
-    
+
 
 def predict(text, axis):
     if axis == "positivity":
@@ -65,7 +65,8 @@ def predict(text, axis):
 
     prediction = torch.argmax(output).item()
     # print(prediction)
-    return arg_to_label(axis, prediction)
+    return [prediction, arg_to_label(axis, prediction)]
+    #return arg_to_label(axis, prediction)
 
 if __name__ == "__main__":
     res = predict("I hate and love you sooooo much", "concreteness")
@@ -76,4 +77,3 @@ if __name__ == "__main__":
     print(res)
     res = predict("I hate and love you sooooo much", "intensity")
     print(res)
-    
