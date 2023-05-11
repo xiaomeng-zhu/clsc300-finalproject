@@ -1,3 +1,4 @@
 ckpt/model_concreteness.pt/pytorch_model.bin filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
+ckpt/model_intensity.pt/pytorch_model.bin filter=lfs diff=lfs merge=lfs -text
