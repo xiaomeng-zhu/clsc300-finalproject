@@ -1,1 +1,5 @@
 decoji/node_modules
+ckpt/model-concreteness.pt/pytorch_model.bin
+ckpt/model-intensity.pt/pytorch_model.bin
+ckpt/model-positivity.pt/pytorch_model.bin
+ckpt/model-sincerity.pt/pytorch_model.bin
