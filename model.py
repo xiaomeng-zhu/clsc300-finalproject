@@ -1,3 +1,4 @@
+import emoji
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,6 +8,9 @@ import torch
 import torch.nn
 from torch.utils.data import Dataset
 from transformers import DistilBertTokenizerFast,DistilBertForSequenceClassification
+# from transformers import AutoModelForSequenceClassification
+# from transformers import TFAutoModelForSequenceClassification
+# from transformers import AutoTokenizer
 from transformers import Trainer,TrainingArguments
 from sklearn.metrics import accuracy_score, f1_score
 warnings.filterwarnings('ignore')
@@ -38,25 +42,11 @@ class SentimentTestDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.encodings)
 
-class CustomTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        labels = inputs.get("labels")
- 
-        # forward pass
-        outputs = model(**inputs)
-        print(outputs)
-        exit()
-        logits = outputs.get("logits")
-        # compute custom loss (suppose one has 3 labels with different weights)
-        # loss_fct = nn.CrossEntropyLoss()
-        loss_fct = nn.NLLLoss()
-        loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
-        return (loss, outputs) if return_outputs else loss
-
 def prepare_data(axis):
     all = pd.read_csv("labeled_data.csv")
     all = all.dropna()
     X = all["sequence"].values.tolist()
+    X = [emoji.demojize(sequence)for sequence in X] # demojize all sequences
     y = all[axis].values.tolist()
     
     # clean up data labels
@@ -76,6 +66,8 @@ def prepare_data(axis):
     train_texts, val_texts, train_labels, val_labels = train_test_split(X, y, test_size=0.33, random_state=42, stratify = y)
     
     tokenizer = DistilBertTokenizerFast.from_pretrained(MODEL_NAME,num_labels=num_labels)
+    # print(tokenizer.tokenize(train_texts[0]))
+
     train_encodings = tokenizer(train_texts, truncation=True, padding=True,return_tensors = 'pt')
     val_encodings = tokenizer(val_texts, truncation=True, padding=True,return_tensors = 'pt')
 
@@ -104,9 +96,10 @@ def main(axis):
         per_device_eval_batch_size=64,   # batch size for evaluation
         warmup_steps=500,                # number of warmup steps for learning rate scheduler
         weight_decay=0.01,               # strength of weight decay
-        logging_dir='./logs4',            # directory for storing logs
+        logging_dir='./logs',            # directory for storing logs
         # logging_steps=10,
         load_best_model_at_end=True,
+        save_total_limit = 1
     )
 
     if axis == "positivity":
@@ -115,7 +108,7 @@ def main(axis):
         num_labels = 2
 
     model = DistilBertForSequenceClassification.from_pretrained(MODEL_NAME,num_labels=num_labels)
-
+    prev = model.state_dict()
     trainer = Trainer(
         model=model,# the instantiated 🤗 Transformers model to be trained
         args=training_args, # training arguments, defined above
@@ -127,9 +120,11 @@ def main(axis):
     metrics = trainer.evaluate()
     print(metrics)
 
-    # calculate accuracy on the validation set
+    trainer.save_model('ckpt/model-{}.pt'.format(axis))
+
 
 if __name__ == "__main__":
+    # main("positivity")
     for axis in ALL_AXIS:
         print("===================================")
         print("Training Model on the dimension", axis)
